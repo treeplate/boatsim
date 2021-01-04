@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'package:dart_console/dart_console.dart';
 
-final console = Console();
-
-void main() {
+void game(Console console) {
   console.write("This game, ");
   console.setForegroundColor(ConsoleColor.yellow);
   console.write("Boating"); // maybe we should have a better name
@@ -53,10 +51,18 @@ void main() {
     }
     water.checkCollisions();
   }
-  console.resetColorAttributes();
-  console.resetCursorPosition();
-  console.clearScreen();
-  console.showCursor();
+}
+
+void main() {
+  final Console console = Console();
+  try {
+    game(console);
+  } finally {
+    console.resetColorAttributes();
+    console.resetCursorPosition();
+    console.clearScreen();
+    console.showCursor();
+  }
 }
 
 // console.readLine(); to read a line
