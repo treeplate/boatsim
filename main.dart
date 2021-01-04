@@ -72,9 +72,29 @@ void main() {
 
 class Water {
   Water(this.contents);
+
   factory Water.parse(String data, Boat boat) {
-    return Water([boat]);
+    int x = 0;
+    int y = 0;
+    List<Thing> contents = <Thing>[];
+    for (int char in data.runes) {
+      switch (char) {
+        case '\n': 
+          x = 0;
+          y += 1;
+          break;
+        case 'B':
+          contents.add(Boat(x.toDouble(), y.toDouble()));
+          break;
+        case '#':
+          contents.add(TestThing(x.toDouble(), y.toDouble()));
+          break;
+      }
+      x += 1;
+    }
+    return Water(contents + [boat]);
   }
+
   List<Thing> contents;
 
   void render(Console console, int x, int y, int width, int height, int yScroll) {
