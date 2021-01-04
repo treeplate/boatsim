@@ -19,12 +19,12 @@ void main() {
   console.readKey();
   // maybe add more text
   Boat boat = Boat(console.windowWidth / 2.0, 2);
-  Water water = Water(<Thing>[boat, TestThing(0, 0)]);
+  Water water = Water(<Thing>[boat, TestThing(0, 0), TestThing(console.windowWidth/1-1, 0)]);
   loop: while (true) {
     console.setBackgroundColor(ConsoleColor.blue);
     console.clearScreen();
     console.writeLine("-" * console.windowWidth);
-    console.cursorPosition = Coordinate(console.windowHeight, 0);
+    console.cursorPosition = Coordinate(console.windowHeight-1, 0);
     console.writeLine("-" * console.windowWidth);
     water.render(console, 0, 0, console.windowWidth, console.windowHeight, boat.y.round() - 2);
     Key key = console.readKey();

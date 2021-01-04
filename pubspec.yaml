@@ -1,5 +1,6 @@
 name: MyApp
 description: ""
+environment:
+  sdk: '>=2.10.0 <3.0.0'
 dependencies:
-  dart_console: null
-dev_dependencies: {}
+  dart_console: any
