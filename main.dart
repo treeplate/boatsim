@@ -30,6 +30,7 @@ void game(Console console) {
       switch (key.controlChar) {
         case ControlCharacter.escape:
           break loop;
+        default:
       }
     } else {
       switch (key.char) {
