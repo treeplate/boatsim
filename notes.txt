@@ -1,0 +1,4 @@
+- navigation between ports
+- obstacles to get around
+- probably river-like (so, not like a lake)
+- you're controlling a cargo ship
