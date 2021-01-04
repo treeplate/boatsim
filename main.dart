@@ -19,7 +19,7 @@ void main() {
   console.readKey();
   // maybe add more text
   Boat boat = Boat(console.windowWidth / 2.0, 2);
-  Water water = Water(<Thing>[boat, TestThing(0, 0)]);
+  Water water = Water.parse(File('world.txt').readAsStringSync(), boat);
   loop: while (true) {
     console.setBackgroundColor(ConsoleColor.blue);
     console.clearScreen();
@@ -65,6 +65,9 @@ void main() {
 
 class Water {
   Water(this.contents);
+  factory Water.parse(String data, Boat boat) {
+    return Water([boat]);
+  }
   List<Thing> contents;
 
   void render(Console console, int x, int y, int width, int height, int yScroll) {
