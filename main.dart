@@ -79,14 +79,14 @@ class Water {
     List<Thing> contents = <Thing>[];
     for (int char in data.runes) {
       switch (char) {
-        case '\n': 
+        case 0x000A: 
           x = 0;
           y += 1;
           break;
-        case 'B':
+        case 0x0042: // B
           contents.add(Boat(x.toDouble(), y.toDouble()));
           break;
-        case '#':
+        case 0x0023: // #
           contents.add(TestThing(x.toDouble(), y.toDouble()));
           break;
       }
