@@ -106,12 +106,15 @@ class Water {
   int worldWidth;
 
   void render(Console console, int x, int y, int width, int height, int yScroll) {
+    int worldX = x + (width / 2 - worldWidth / 2).round();
+    int screenLeft = -worldX;
+    int screenRight = worldWidth - worldX;
     for (Thing thing in contents) {
-      if (thing.x >= 0 && thing.x < width &&
+      if (thing.x >= screenLeft && thing.x < screenRight &&
           thing.y > yScroll && thing.y <= yScroll + height) {
         thing.paint(
           console,
-          x + (thing.x + (width/2) - (worldWidth/2)).round() ,
+          worldX + thing.x.round() ,
           y + (height - (thing.y.round() - yScroll)),
         );
       }
