@@ -1,3 +1,4 @@
+// @dart=2.10
 import 'dart:io';
 import 'package:dart_console/dart_console.dart';
 
@@ -16,14 +17,15 @@ void game(Console console) {
   console.hideCursor();
   console.readKey();
   // maybe add more text
-  Boat boat = Boat(console.windowWidth / 2.0, 2);
-  Water water = Water.parse(File('world.txt').readAsStringSync(), boat);
+  Water water = Water.parse(File('world.txt').readAsStringSync());
+  Boat boat = water.boat;
   loop: while (true) {
     console.setBackgroundColor(ConsoleColor.blue);
     console.clearScreen();
-    console.writeLine("-" * console.windowWidth);
+    console.setForegroundColor(ConsoleColor.brightGreen);
+    console.write("-" * console.windowWidth);
     console.cursorPosition = Coordinate(console.windowHeight-1, 0);
-    console.writeLine("-" * console.windowWidth);
+    console.write("-" * console.windowWidth);
     water.render(console, 0, 0, console.windowWidth, console.windowHeight, boat.y.round() - 2);
     Key key = console.readKey();
     if (key.isControl) {
@@ -53,9 +55,9 @@ void game(Console console) {
     water.checkCollisions();
   }
 }
-
+final Console console = Console();
 void main() {
-  final Console console = Console();
+  
   try {
     game(console);
   } finally {
@@ -71,20 +73,23 @@ void main() {
 // window size is console.windowWidth by console.windowHeight
 
 class Water {
-  Water(this.contents);
-
-  factory Water.parse(String data, Boat boat) {
+  Water(this.contents, this.worldWidth, this.boat);
+  final Boat boat;
+  
+  factory Water.parse(String data) {
     int x = 0;
     int y = 0;
+    Boat boat;
     List<Thing> contents = <Thing>[];
     for (int char in data.runes) {
       switch (char) {
         case 0x000A: 
-          x = 0;
+          x = -1;
           y += 1;
           break;
         case 0x0042: // B
-          contents.add(Boat(x.toDouble(), y.toDouble()));
+          boat = Boat(x.toDouble(), y.toDouble());
+          contents.add(boat);
           break;
         case 0x0023: // #
           contents.add(TestThing(x.toDouble(), y.toDouble()));
@@ -92,18 +97,21 @@ class Water {
       }
       x += 1;
     }
-    return Water(contents + [boat]);
+    //console.writeLine(contents.toString());
+    //console.readKey();
+    return Water(contents, data.indexOf("\n"), boat);
   }
 
   List<Thing> contents;
+  int worldWidth;
 
   void render(Console console, int x, int y, int width, int height, int yScroll) {
     for (Thing thing in contents) {
       if (thing.x >= 0 && thing.x < width &&
-          thing.y >= yScroll && thing.y < yScroll + height) {
+          thing.y > yScroll && thing.y <= yScroll + height) {
         thing.paint(
           console,
-          x + thing.x.round(),
+          x + (thing.x + (width/2) - (worldWidth/2)).round() ,
           y + (height - (thing.y.round() - yScroll)),
         );
       }
@@ -126,6 +134,7 @@ abstract class Thing {
     console.setBackgroundColor(background);
     console.write(icon);
   }
+  String toString() => "$icon ($x, $y)";
 }
 
 class TestThing extends Thing {
