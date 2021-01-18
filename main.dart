@@ -3,34 +3,60 @@ import 'dart:io';
 import 'package:dart_console/dart_console.dart';
 
 void game(Console console) {
+  /// Intro
+  console.clearScreen();
   console.write("This game, ");
   console.setForegroundColor(ConsoleColor.yellow);
   console.write("Boating"); // maybe we should have a better name
   console.resetColorAttributes();
-  console.writeLine(", is a boat navigation game.");
+  console.writeLine(", is a scrolling boat navigation game.");
   console.write("You use ");
   console.setForegroundColor(ConsoleColor.yellow);
   console.write("WASD "); //maybe also arrow keys?
   console.resetColorAttributes();
   console.writeLine("to navigate your boat.");
-  console.writeLine("Your goal is to get to the other end of the river.");
+  console.write("Your goal is to get to the ");
+  console.setForegroundColor(ConsoleColor.white);
+  console.write("_");
+  console.resetColorAttributes();
+  console.writeLine(", or port.");
+  console.write("Avoid ");
+  console.setForegroundColor(ConsoleColor.brightYellow);
+  console.write("█");
+  console.resetColorAttributes();
+  console.writeLine(", or shores.");
+  console.write("You are a ");
+  console.setForegroundColor(ConsoleColor.white);
+  console.setBackgroundColor(ConsoleColor.blue);
+  console.write("B");
+  console.resetColorAttributes();
+  console.writeLine(", or boat.");
   console.hideCursor();
   console.readKey();
   // maybe add more text
+
+  /// Setup
   Water water = Water.parse(File('world.txt').readAsStringSync());
   Boat boat = water.boat;
   loop: while (true) {
-    console.setBackgroundColor(ConsoleColor.blue);
+    /// Rendering
+    console.resetColorAttributes();
     console.clearScreen();
     console.setForegroundColor(ConsoleColor.brightGreen);
     console.write("-" * console.windowWidth);
     console.cursorPosition = Coordinate(console.windowHeight-1, 0);
     console.write("-" * console.windowWidth);
-    water.render(console, 0, 0, console.windowWidth, console.windowHeight, boat.y.round() - 2);
+    water.render(console, 0, 1, console.windowWidth, console.windowHeight-2, boat.y.round() - 5);
+
+    /// Key detection
     Key key = console.readKey();
     if (key.isControl) {
       switch (key.controlChar) {
         case ControlCharacter.escape:
+          break loop;
+        case ControlCharacter.ctrlC:
+          break loop;
+        case ControlCharacter.ctrlD:
           break loop;
         default:
       }
@@ -39,24 +65,40 @@ void game(Console console) {
         case 'q':
           break loop;
         case 'w':
-          boat.y += 1.0;
+          if(!water.isCollision<Shore>(boat.x, boat.y+1)) boat.y += 1.0;
           break;
         case 'a':
-          boat.x -= 1.0;
+          if(!water.isCollision<Shore>(boat.x-1, boat.y)) boat.x -= 1.0;
           break;
         case 's':
-          boat.y -= 1.0;
+          if(!water.isCollision<Shore>(boat.x, boat.y-1)) boat.y -= 1.0;
           break;
         case 'd':
-          boat.x += 1.0;
+          if(!water.isCollision<Shore>(boat.x+1, boat.y)) boat.x += 1.0;
           break;
+        
       }
     }
-    water.checkCollisions();
+
+    /// Win check
+
+    Port port = water.contents.whereType<Port>().single;
+    if(port.x == boat.x && port.y == boat.y) {
+      console.setBackgroundColor(ConsoleColor.white);
+      console.clearScreen();
+      console.setForegroundColor(ConsoleColor.brightYellow);
+      console.cursorPosition = Coordinate((console.windowHeight/2).round(), (console.windowWidth/2).round());
+      console.writeLine("You Win!");
+      while(console.readKey().char != "q") {
+        console.writeLine("Presss q");
+      }
+      break loop;
+    }
   }
 }
 final Console console = Console();
 void main() {
+  /// cleanup
   
   try {
     game(console);
@@ -76,6 +118,8 @@ class Water {
   Water(this.contents, this.worldWidth, this.boat);
   final Boat boat;
   
+  /// Parsing
+
   factory Water.parse(String data) {
     int x = 0;
     int y = 0;
@@ -91,10 +135,14 @@ class Water {
           boat = Boat(x.toDouble(), y.toDouble());
           contents.add(boat);
           break;
+        case 0x0043: // C
+          contents.add(Port(x/1, y/1));
+          break;
         case 0x0023: // #
-          contents.add(TestThing(x.toDouble(), y.toDouble()));
+          contents.add(Shore(x.toDouble(), y.toDouble()));
           break;
       }
+      contents.add(River(x.toDouble(), y.toDouble()));
       x += 1;
     }
     //console.writeLine(contents.toString());
@@ -105,25 +153,36 @@ class Water {
   List<Thing> contents;
   int worldWidth;
 
+  /// Rendering
+
   void render(Console console, int x, int y, int width, int height, int yScroll) {
-    int worldX = x + (width / 2 - worldWidth / 2).round();
+    int worldX = (width / 2 - worldWidth / 2).round();
     int screenLeft = -worldX;
-    int screenRight = worldWidth - worldX;
+    int screenRight = width - worldX;
     for (Thing thing in contents) {
       if (thing.x >= screenLeft && thing.x < screenRight &&
           thing.y > yScroll && thing.y <= yScroll + height) {
         thing.paint(
           console,
-          worldX + thing.x.round() ,
+          x + worldX + thing.x.round() ,
           y + (height - (thing.y.round() - yScroll)),
+          this,
         );
       }
     }
   }
 
-  void checkCollisions() {
+  /// Collision detection
+
+  bool isCollision<T>(double potentialX, double potentialY) {
+    for(Thing thing in contents) {
+      if(thing.x == potentialX && thing.y == potentialY && (thing is T)) return true;
+    }
+    return false;
   }
 }
+
+/// Things
 
 abstract class Thing {
   Thing(this.x, this.y);
@@ -131,20 +190,22 @@ abstract class Thing {
   ConsoleColor get color;
   ConsoleColor get background;
   String get icon;
-  void paint(Console console, int x, int y) {
+  void paint(Console console, int x, int y, Water water) {
     console.cursorPosition = Coordinate(y, x);
     console.setForegroundColor(color);
     console.setBackgroundColor(background);
-    console.write(icon);
+    if((!water.isCollision<Boat>(this.x, this.y) || this is Boat) && (!water.isCollision<Shore>(this.x, this.y) || this is Shore) && (!water.isCollision<Port>(this.x, this.y) || this is Port)) {
+      console.write(icon);
+    }
   }
   String toString() => "$icon ($x, $y)";
 }
 
-class TestThing extends Thing {
-  TestThing(double x, double y) : super(x, y);
-  ConsoleColor get color => ConsoleColor.yellow;
+class Shore extends Thing {
+  Shore(double x, double y) : super(x, y);
+  ConsoleColor get color => ConsoleColor.brightYellow;
   ConsoleColor get background => ConsoleColor.blue;
-  String get icon => "#";
+  String get icon => "█";
 }
 
 class Boat extends Thing {
@@ -152,4 +213,16 @@ class Boat extends Thing {
   ConsoleColor get color => ConsoleColor.brightWhite;
   ConsoleColor get background => ConsoleColor.blue;
   String get icon => 'B';
+}
+class Port extends Thing {
+  Port(double x, double y) : super(x, y);
+  ConsoleColor get color => ConsoleColor.brightWhite;
+  ConsoleColor get background => ConsoleColor.blue;
+  String get icon => '_';
+}
+class River extends Thing {
+  River(double x, double y) : super(x, y);
+  ConsoleColor get color => ConsoleColor.brightWhite;
+  ConsoleColor get background => ConsoleColor.blue;
+  String get icon => ' ';
 }
