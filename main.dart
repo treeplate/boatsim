@@ -1,4 +1,4 @@
-// @dart=2.10
+/// @dart=2.10
 import 'dart:io';
 import 'package:dart_console/dart_console.dart';
 
